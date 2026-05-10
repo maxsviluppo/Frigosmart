@@ -1497,20 +1497,6 @@ export default function App() {
           </div>
           
         <div className="flex flex-col items-center gap-6">
-          <button 
-            onClick={() => {
-              setAudioEnabled(!audioEnabled);
-              playMuffledClick();
-            }}
-            className={cn(
-              "w-12 h-12 rounded-2xl neumorphic-raised flex items-center justify-center transition-all active:scale-95",
-              audioEnabled ? "text-orange-500" : "text-slate-400"
-            )}
-            title={audioEnabled ? "Disattiva audio" : "Attiva audio"}
-          >
-            {audioEnabled ? <Volume2 size={24} /> : <VolumeX size={24} />}
-          </button>
-
           <div className="text-center">
               <p className="text-[10px] text-slate-300 font-bold uppercase tracking-widest mb-1">Tecnologia</p>
               <div className="flex items-center justify-center gap-2 text-slate-500 font-bold text-xs">
@@ -1518,7 +1504,21 @@ export default function App() {
                 <Sparkles size={12} className="text-indigo-400" />
               </div>
             </div>
+            
             <div className="flex items-center justify-center gap-4">
+              <button 
+                onClick={() => {
+                  setAudioEnabled(!audioEnabled);
+                  playMuffledClick();
+                }}
+                className={cn(
+                  "w-10 h-10 rounded-xl neumorphic-raised flex items-center justify-center transition-all active:scale-95",
+                  audioEnabled ? "text-orange-500" : "text-slate-400"
+                )}
+                title={audioEnabled ? "Disattiva audio" : "Attiva audio"}
+              >
+                {audioEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
+              </button>
               {[Bell, ShoppingBag, RefreshCw].map((Icon, idx) => (
                 <a key={idx} href="#" className="w-10 h-10 neumorphic-raised rounded-xl flex items-center justify-center text-slate-400 hover:text-indigo-500 transition-all">
                   <Icon size={18} />

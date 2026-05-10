@@ -1,6 +1,6 @@
 {
   "name": "FrigoSmart AI",
-  "description": "App intelligente per la gestione del frigorifero con riconoscimento AI dei prodotti e tracciamento delle scadenze.",
+  "description": "FrigoSmart AI: L'assistente intelligente che trasforma il tuo frigorifero. Monitora scadenze, ricevi suggerimenti ricette e gestisci la tua spesa con il riconoscimento AI dei prodotti.",
   "requestFramePermissions": ["camera", "microphone"],
   "majorCapabilities": []
 }
