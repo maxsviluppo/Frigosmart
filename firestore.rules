@@ -6,42 +6,59 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Helper functions
+    // Connection test path
+    match /test/connection {
+      allow get: if true;
+    }
+
+    // === Helper Functions ===
     function isSignedIn() {
       return request.auth != null;
     }
 
     function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+      return isSignedIn() && 
+             request.auth.uid == userId && 
+             request.auth.token.email_verified == true;
     }
 
     function isValidId(id) {
       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
-    // Entity validation
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // === Validation Helpers ===
     function isValidUser(data) {
       return data.keys().hasAll(['email', 'notification_settings']) &&
-             data.keys().size() == 2 &&
              data.email is string && data.email.size() <= 256 &&
              data.notification_settings is map &&
              data.notification_settings.daysBefore is number &&
-             data.notification_settings.enabledCategories is list;
+             data.notification_settings.enabledCategories is list &&
+             (data.keys().size() >= 2 && data.keys().size() <= 4); // email, settings, plus optional gemini key or others
     }
 
     function isValidProduct(data, userId) {
       return data.keys().hasAll(['name', 'expiryDate', 'addedDate', 'category', 'consumed', 'userId']) &&
-             data.name is string && data.name.size() <= 200 &&
-             data.expiryDate is string && data.expiryDate.size() == 10 &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 200 &&
+             data.expiryDate is string && data.expiryDate.size() <= 10 &&
              data.addedDate is string && data.addedDate.size() <= 32 &&
              data.category is string && data.category.size() <= 64 &&
              data.consumed is bool &&
-             data.userId == userId;
+             data.userId == userId &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 1000)) &&
+             (!('customReminderDays' in data) || (data.customReminderDays == null || data.customReminderDays is number));
     }
 
     function isValidShoppingItem(data, userId) {
       return data.keys().hasAll(['name', 'category', 'checked', 'source', 'addedDate', 'userId']) &&
-             data.name is string && data.name.size() <= 200 &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 200 &&
              data.category is string && data.category.size() <= 64 &&
              data.checked is bool &&
              data.source is string && data.source in ['recipe', 'finished', 'manual'] &&
@@ -49,28 +66,33 @@ service cloud.firestore {
              data.userId == userId;
     }
 
-    // User document
+    // === Match Blocks ===
     match /users/{userId} {
       allow get: if isOwner(userId);
-      allow create: if isOwner(userId) && isValidUser(request.resource.data);
-      allow update: if isOwner(userId) && isValidUser(request.resource.data);
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && isValidUser(incoming());
 
-      // Products subcollection
       match /products/{productId} {
         allow list: if isOwner(userId);
-        allow get: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidProduct(request.resource.data, userId);
-        allow update: if isOwner(userId) && isValidProduct(request.resource.data, userId);
-        allow delete: if isOwner(userId);
+        allow get: if isOwner(userId) && isValidId(productId);
+        allow create: if isOwner(userId) && isValidId(productId) && isValidProduct(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(productId) && isValidProduct(incoming(), userId) && (
+          // Ensure userId and addedDate are immutable
+          incoming().userId == userId &&
+          incoming().addedDate == existing().addedDate
+        );
+        allow delete: if isOwner(userId) && isValidId(productId);
       }
 
-      // Shopping items subcollection
       match /shopping_items/{itemId} {
         allow list: if isOwner(userId);
-        allow get: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidShoppingItem(request.resource.data, userId);
-        allow update: if isOwner(userId) && isValidShoppingItem(request.resource.data, userId);
-        allow delete: if isOwner(userId);
+        allow get: if isOwner(userId) && isValidId(itemId);
+        allow create: if isOwner(userId) && isValidId(itemId) && isValidShoppingItem(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(itemId) && isValidShoppingItem(incoming(), userId) && (
+          incoming().userId == userId &&
+          incoming().addedDate == existing().addedDate
+        );
+        allow delete: if isOwner(userId) && isValidId(itemId);
       }
     }
   }
