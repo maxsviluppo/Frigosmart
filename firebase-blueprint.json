@@ -1,0 +1,63 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and settings",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "notification_settings": {
+          "type": "object",
+          "properties": {
+            "daysBefore": { "type": "number" },
+            "enabledCategories": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      }
+    },
+    "Product": {
+      "title": "Product",
+      "description": "A food product with expiry date",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "expiryDate": { "type": "string", "format": "date" },
+        "addedDate": { "type": "string", "format": "date-time" },
+        "category": { "type": "string" },
+        "consumed": { "type": "boolean" },
+        "customReminderDays": { "type": "number" },
+        "notes": { "type": "string" },
+        "userId": { "type": "string" }
+      },
+      "required": ["name", "expiryDate", "addedDate", "category", "consumed", "userId"]
+    },
+    "ShoppingItem": {
+      "title": "ShoppingItem",
+      "description": "An item in the shopping list",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "checked": { "type": "boolean" },
+        "source": { "type": "string", "enum": ["recipe", "finished", "manual"] },
+        "addedDate": { "type": "string", "format": "date-time" },
+        "userId": { "type": "string" }
+      },
+      "required": ["name", "category", "checked", "source", "addedDate", "userId"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile document"
+    },
+    "/users/{userId}/products/{productId}": {
+      "schema": "Product",
+      "description": "Collection of products owned by the user"
+    },
+    "/users/{userId}/shopping_items/{itemId}": {
+      "schema": "ShoppingItem",
+      "description": "Collection of shopping items owned by the user"
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "FrigoSmart AI",
+  "description": "App intelligente per la gestione del frigorifero con riconoscimento AI dei prodotti e tracciamento delle scadenze.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": []
+}
