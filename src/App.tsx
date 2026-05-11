@@ -977,7 +977,7 @@ export default function App() {
                                 <div className="min-w-0 pr-2">
                                   <div className="relative group">
                                     <div className={cn(
-                                      "font-black leading-tight text-lg md:text-xl truncate transition-all duration-500 relative inline-block",
+                                      "font-black leading-tight text-sm md:text-base transition-all duration-500 relative inline-block break-words whitespace-normal",
                                       product.consumed ? "text-slate-500" : "text-navy-deep"
                                     )}>
                                       {product.name}
