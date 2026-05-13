@@ -974,10 +974,10 @@ export default function App() {
                                 )}>
                                   {getCategoryIcon(product.category)}
                                 </div>
-                                <div className="min-w-0 pr-2">
+                                <div className="min-w-0 flex-1 pr-2">
                                   <div className="relative group">
                                     <div className={cn(
-                                      "font-black leading-tight text-sm md:text-base transition-all duration-500 relative inline-block break-words whitespace-normal",
+                                      "font-black leading-tight text-xs md:text-sm transition-all duration-500 relative block break-words whitespace-normal max-w-full",
                                       product.consumed ? "text-slate-500" : "text-navy-deep"
                                     )}>
                                       {product.name}
@@ -1434,7 +1434,18 @@ export default function App() {
                           value={(scannedInfo.customReminderDays === undefined || scannedInfo.customReminderDays === null) ? "" : scannedInfo.customReminderDays}
                           onChange={(e) => {
                             const val = e.target.value === "" ? null : parseInt(e.target.value);
-                            setScannedInfo({ ...scannedInfo, customReminderDays: val });
+                            let newExpiry = scannedInfo.expiryDate;
+                            if (val !== null && scannedInfo.expiryDate) {
+                              const d = parseISO(scannedInfo.expiryDate);
+                              if (isValid(d)) {
+                                newExpiry = format(addDays(d, val), 'yyyy-MM-dd');
+                              }
+                            }
+                            setScannedInfo({ 
+                              ...scannedInfo, 
+                              customReminderDays: val,
+                              expiryDate: newExpiry
+                            });
                           }}
                           className="w-full neumorphic-inset px-6 py-5 rounded-3xl font-bold text-navy-deep transition-all outline-none appearance-none cursor-pointer border-none"
                         >
