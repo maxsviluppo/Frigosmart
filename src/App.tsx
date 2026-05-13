@@ -139,6 +139,7 @@ export default function App() {
   const [scannedInfo, setScannedInfo] = useState<Partial<Product> | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterMode, setFilterMode] = useState<'all' | 'critical'>('all');
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
     daysBefore: 3,
     enabledCategories: ['Latticini', 'Carne', 'Vegetali', 'Bevande', 'Frutta', 'Altro'],
@@ -746,15 +747,33 @@ export default function App() {
     }
   };
 
+  const isProductCriticalOrExpired = (product: Product) => {
+    const today = new Date();
+    const expiry = getSafeDate(getEffectiveExpiryDate(product));
+    const diff = differenceInDays(expiry, today);
+    const isCategoryEnabled = notificationSettings.enabledCategories.includes(product.category);
+    const threshold = (product.customReminderDays !== undefined && product.customReminderDays !== null) ? product.customReminderDays : (isCategoryEnabled ? notificationSettings.daysBefore : -1);
+    return diff < 0 || diff <= threshold;
+  };
+
+  const getRemainingTimeText = (product: Product) => {
+    const today = new Date();
+    const expiry = getSafeDate(getEffectiveExpiryDate(product));
+    const diff = differenceInDays(expiry, today);
+    if (diff < 0) return `Scaduto da ${Math.abs(diff)} ${Math.abs(diff) === 1 ? 'giorno' : 'giorni'}`;
+    if (diff === 0) return 'Scade Oggi!';
+    if (diff === 1) return 'Scade Domani';
+    return `Mancano ${diff} giorni`;
+  };
+
   const getStatusClasses = (product: Product) => {
     const today = new Date();
-    const expiry = getSafeDate(product.expiryDate);
+    const expiry = getSafeDate(getEffectiveExpiryDate(product));
     const diff = differenceInDays(expiry, today);
 
     if (diff < 0) return 'text-rose-400 bg-rose-500/10 border-rose-500/20'; // Expired
     
     const isCategoryEnabled = notificationSettings.enabledCategories.includes(product.category);
-    // Custom reminder takes precedence if set, otherwise use global settings
     const threshold = (product.customReminderDays !== undefined && product.customReminderDays !== null) ? product.customReminderDays : (isCategoryEnabled ? notificationSettings.daysBefore : -1);
     
     if (diff <= threshold) {
@@ -764,9 +783,14 @@ export default function App() {
     return 'text-slate-400 bg-slate-800 border-slate-700/50'; // OK
   };
 
-  const filteredProducts = products.filter(p => 
-    p.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredProducts = products.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
+    if (!matchesSearch) return false;
+    if (filterMode === 'critical') {
+      return isProductCriticalOrExpired(p);
+    }
+    return true;
+  });
 
   const sortedProducts = [...filteredProducts].sort((a, b) => {
     // Primary sort: consumed state (not consumed first)
@@ -774,16 +798,11 @@ export default function App() {
       return Number(a.consumed) - Number(b.consumed);
     }
 
-    // Secondary sort: expiry date ascending
-    return new Date(a.expiryDate).getTime() - new Date(b.expiryDate).getTime();
+    // Secondary sort: effective expiry date ascending
+    return new Date(getEffectiveExpiryDate(a)).getTime() - new Date(getEffectiveExpiryDate(b)).getTime();
   });
 
-  const expiredCount = products.filter(p => {
-    const diff = differenceInDays(getSafeDate(p.expiryDate), new Date());
-    const isCategoryEnabled = notificationSettings.enabledCategories.includes(p.category);
-    const threshold = (p.customReminderDays !== undefined && p.customReminderDays !== null) ? p.customReminderDays : (isCategoryEnabled ? notificationSettings.daysBefore : -1);
-    return diff < 0 || diff <= threshold;
-  }).length;
+  const expiredCount = products.filter(p => isProductCriticalOrExpired(p)).length;
 
   return (
     <div className="min-h-screen bg-[#E0E5EC] font-sans text-slate-700 selection:bg-indigo-500/30 overflow-x-hidden relative">
@@ -906,14 +925,28 @@ export default function App() {
                   </div>
 
               <div className="grid grid-cols-2 gap-4 md:gap-6 mb-10 md:mb-12">
-                <div className="neumorphic-raised px-5 pt-7 pb-8 md:px-8 md:pt-8 md:pb-10 rounded-[2rem] md:rounded-[2.5rem] flex flex-col items-start gap-1 md:gap-2">
-                  <span className="text-[9px] md:text-[10px] font-black text-rose-500 uppercase tracking-[0.2em] md:tracking-widest truncate w-full">Critici</span>
+                <button 
+                  onClick={() => setFilterMode(filterMode === 'critical' ? 'all' : 'critical')}
+                  className={cn(
+                    "px-5 pt-7 pb-8 md:px-8 md:pt-8 md:pb-10 rounded-[2rem] md:rounded-[2.5rem] flex flex-col items-start gap-1 md:gap-2 text-left transition-all cursor-pointer relative overflow-hidden group border-2 active:scale-95",
+                    filterMode === 'critical' ? "neumorphic-inset border-rose-400/40 bg-rose-50/20" : "neumorphic-raised border-transparent hover:scale-[1.01]"
+                  )}
+                >
+                  {filterMode === 'critical' && <div className="absolute top-3 right-4 w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_8px_#f43f5e]" />}
+                  <span className="text-[9px] md:text-[10px] font-black text-rose-500 uppercase tracking-[0.2em] md:tracking-widest truncate w-full">Critici (Filtro)</span>
                   <span className="text-4xl md:text-5xl font-display font-bold text-navy-deep leading-[1.1]">{expiredCount}</span>
-                </div>
-                <div className="neumorphic-raised px-5 pt-7 pb-8 md:px-8 md:pt-8 md:pb-10 rounded-[2rem] md:rounded-[2.5rem] flex flex-col items-start gap-1 md:gap-2">
+                </button>
+                <button 
+                  onClick={() => setFilterMode('all')}
+                  className={cn(
+                    "px-5 pt-7 pb-8 md:px-8 md:pt-8 md:pb-10 rounded-[2rem] md:rounded-[2.5rem] flex flex-col items-start gap-1 md:gap-2 text-left transition-all cursor-pointer relative overflow-hidden group border-2 active:scale-95",
+                    filterMode === 'all' ? "neumorphic-inset border-indigo-400/40 bg-indigo-50/10" : "neumorphic-raised border-transparent hover:scale-[1.01]"
+                  )}
+                >
+                  {filterMode === 'all' && <div className="absolute top-3 right-4 w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_#6366f1]" />}
                   <span className="text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] md:tracking-widest truncate w-full">Totali</span>
                   <span className="text-4xl md:text-5xl font-display font-bold text-navy-deep leading-[1.1]">{products.length}</span>
-                </div>
+                </button>
               </div>
               {/* Toolbar & Add Item */}
               <div className="flex flex-col gap-6">
@@ -1033,8 +1066,15 @@ export default function App() {
                                       )}
                                     </div>
                                   </div>
-                                  {/* Progress bar on mobile/tablet */}
-                                  <div className={cn("lg:hidden mt-2 w-24 md:w-32 transition-opacity", product.consumed && "opacity-0")}>
+                                  {/* Progress bar & Remaining life text on mobile/tablet */}
+                                  <div className={cn("lg:hidden mt-2 w-36 md:w-44 transition-opacity", product.consumed && "opacity-0")}>
+                                    <div className="flex items-center justify-between text-[9px] font-black tracking-widest uppercase mb-1">
+                                      <span className={cn(
+                                        statusClasses.includes('rose') ? "text-rose-500" :
+                                        statusClasses.includes('amber') ? "text-amber-500" :
+                                        "text-indigo-500"
+                                      )}>{getRemainingTimeText(product)}</span>
+                                    </div>
                                     <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden shadow-inner">
                                       <motion.div 
                                         initial={{ width: 0 }}
@@ -1060,8 +1100,15 @@ export default function App() {
                                 </span>
                               </div>
 
-                              {/* Desktop Progress bar */}
-                              <div className="hidden lg:block lg:w-[150px] px-4">
+                              {/* Desktop Progress bar & Remaining life text */}
+                              <div className="hidden lg:block lg:w-[160px] px-4">
+                                <div className="flex items-center justify-between text-[9px] font-black tracking-widest uppercase mb-1">
+                                  <span className={cn(
+                                    statusClasses.includes('rose') ? "text-rose-500" :
+                                    statusClasses.includes('amber') ? "text-amber-500" :
+                                    "text-indigo-500"
+                                  )}>{getRemainingTimeText(product)}</span>
+                                </div>
                                 <div className="h-2 bg-slate-200 rounded-full overflow-hidden shadow-inner">
                                   <motion.div 
                                     initial={{ width: 0 }}
