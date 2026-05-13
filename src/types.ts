@@ -8,6 +8,9 @@ export interface Product {
   consumed: boolean;
   customReminderDays?: number; // Days before expiry for custom reminder
   notes?: string;
+  opened?: boolean;
+  openedDate?: string;
+  daysAfterOpen?: number | null;
 }
 
 export interface ShoppingItem {

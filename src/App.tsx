@@ -115,6 +115,19 @@ const renderDate = (dateStr: string, formatStr: string) => {
   return format(d, formatStr, { locale: it });
 };
 
+const getEffectiveExpiryDate = (product: Partial<Product>): string => {
+  if (!product.expiryDate) return format(addDays(new Date(), 7), 'yyyy-MM-dd');
+  if (product.opened && product.openedDate && product.daysAfterOpen) {
+    const openD = parseISO(product.openedDate);
+    const origD = parseISO(product.expiryDate);
+    if (isValid(openD) && isValid(origD)) {
+      const afterOpenExpiry = addDays(openD, product.daysAfterOpen);
+      return isBefore(afterOpenExpiry, origD) ? format(afterOpenExpiry, 'yyyy-MM-dd') : product.expiryDate;
+    }
+  }
+  return product.expiryDate;
+};
+
 export default function App() {
   const [view, setView] = useState<AppView>('list');
   const [user, setUser] = useState<User | null>(null);
@@ -565,6 +578,9 @@ export default function App() {
           consumed: false,
           customReminderDays: product.customReminderDays ?? null,
           notes: product.notes || '',
+          opened: product.opened ?? false,
+          openedDate: product.openedDate ?? new Date().toISOString(),
+          daysAfterOpen: product.daysAfterOpen ?? null,
           userId: user.uid
         };
         await setDoc(newProductRef, newProduct);
@@ -592,6 +608,27 @@ export default function App() {
     try {
       const productRef = doc(db, 'users', user.uid, 'products', id);
       await updateDoc(productRef, { consumed: !product.consumed });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `users/${user.uid}/products/${id}`);
+    }
+  };
+
+  const toggleOpened = async (id: string) => {
+    if (!user) return;
+    const product = products.find(p => p.id === id);
+    if (!product) return;
+
+    try {
+      const isCurrentlyOpened = !!product.opened;
+      const updatePayload: Partial<Product> = {
+        opened: !isCurrentlyOpened,
+        openedDate: !isCurrentlyOpened ? new Date().toISOString() : undefined
+      };
+      if (!isCurrentlyOpened && !product.daysAfterOpen) {
+        updatePayload.daysAfterOpen = 3;
+      }
+      const productRef = doc(db, 'users', user.uid, 'products', id);
+      await updateDoc(productRef, updatePayload);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `users/${user.uid}/products/${id}`);
     }
@@ -981,6 +1018,12 @@ export default function App() {
                                       product.consumed ? "text-slate-500" : "text-navy-deep"
                                     )}>
                                       {product.name}
+                                      {product.opened && !product.consumed && (
+                                        <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 text-[9px] font-black uppercase tracking-widest border border-amber-500/20 align-middle">
+                                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                          Aperto ({product.daysAfterOpen}g)
+                                        </span>
+                                      )}
                                       {product.consumed && (
                                         <motion.div 
                                           initial={{ width: 0 }}
@@ -995,7 +1038,7 @@ export default function App() {
                                     <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden shadow-inner">
                                       <motion.div 
                                         initial={{ width: 0 }}
-                                        animate={{ width: `${getExpiryProgress(product.addedDate, product.expiryDate)}%` }}
+                                        animate={{ width: `${getExpiryProgress(product.addedDate, getEffectiveExpiryDate(product))}%` }}
                                         className={cn(
                                           "h-full transition-colors",
                                           statusClasses.includes('rose') ? "bg-rose-500" :
@@ -1022,7 +1065,7 @@ export default function App() {
                                 <div className="h-2 bg-slate-200 rounded-full overflow-hidden shadow-inner">
                                   <motion.div 
                                     initial={{ width: 0 }}
-                                    animate={{ width: `${getExpiryProgress(product.addedDate, product.expiryDate)}%` }}
+                                    animate={{ width: `${getExpiryProgress(product.addedDate, getEffectiveExpiryDate(product))}%` }}
                                     className={cn(
                                       "h-full transition-colors",
                                       statusClasses.includes('rose') ? "bg-rose-500" :
@@ -1040,22 +1083,33 @@ export default function App() {
                                   statusClasses.includes('amber') ? "text-amber-600" :
                                   "text-slate-400"
                                 )}>
-                                  {renderDate(product.expiryDate, 'dd MMM yy')}
+                                  {renderDate(getEffectiveExpiryDate(product), 'dd MMM yy')}
                                 </div>
                               </div>
 
-                              <div className="flex items-center justify-end gap-2 md:gap-3 lg:w-[150px] lg:pl-4">
+                              <div className="flex items-center justify-end gap-1.5 md:gap-2 lg:w-[150px] lg:pl-2">
+                                <button 
+                                  onClick={() => toggleOpened(product.id)}
+                                  className={cn(
+                                    "px-2 md:px-2.5 h-10 md:h-11 rounded-xl md:rounded-2xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1 transition-all active:scale-95 border",
+                                    product.opened ? "bg-amber-500/10 text-amber-600 border-amber-500/30" : "neumorphic-raised text-slate-400 hover:text-amber-500 border-transparent"
+                                  )}
+                                  title={product.opened ? "Confezione aperta" : "Segna come aperto"}
+                                >
+                                  <span className={cn("w-1.5 h-1.5 rounded-full", product.opened ? "bg-amber-500" : "bg-slate-400")}></span>
+                                  {product.opened ? "Aperto" : "Apri"}
+                                </button>
                                 <button 
                                   onClick={() => editProduct(product)}
-                                  className="w-10 h-10 md:w-11 md:h-11 neumorphic-raised rounded-xl md:rounded-2xl text-slate-400 hover:text-indigo-500 flex items-center justify-center transition-all active:scale-95"
+                                  className="w-9 h-10 md:w-10 md:h-11 neumorphic-raised rounded-xl md:rounded-2xl text-slate-400 hover:text-indigo-500 flex items-center justify-center transition-all active:scale-95 shrink-0"
                                 >
-                                  <Edit3 size={18} />
+                                  <Edit3 size={16} />
                                 </button>
                                 <button 
                                   onClick={() => removeProduct(product.id)}
-                                  className="w-10 h-10 md:w-11 md:h-11 neumorphic-raised rounded-xl md:rounded-2xl text-orange-500 hover:text-orange-700 flex items-center justify-center transition-all active:scale-95"
+                                  className="w-9 h-10 md:w-10 md:h-11 neumorphic-raised rounded-xl md:rounded-2xl text-orange-500 hover:text-orange-700 flex items-center justify-center transition-all active:scale-95 shrink-0"
                                 >
-                                  <Trash2 size={18} />
+                                  <Trash2 size={16} />
                                 </button>
                               </div>
                             </div>
@@ -1459,6 +1513,50 @@ export default function App() {
                         <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
                           <ChevronRight size={18} className="rotate-90" />
                         </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <label className="text-[10px] text-slate-400 uppercase font-bold tracking-widest px-2">Stato Confezione</label>
+                      <div className="neumorphic-inset rounded-3xl p-4 flex flex-col gap-3">
+                        <label className="flex items-center gap-3 cursor-pointer px-2">
+                          <input 
+                            type="checkbox" 
+                            checked={!!scannedInfo.opened} 
+                            onChange={(e) => {
+                              const openedVal = e.target.checked;
+                              setScannedInfo({
+                                ...scannedInfo,
+                                opened: openedVal,
+                                openedDate: openedVal ? (scannedInfo.openedDate || new Date().toISOString()) : undefined,
+                                daysAfterOpen: openedVal ? (scannedInfo.daysAfterOpen || 3) : null
+                              });
+                            }}
+                            className="w-5 h-5 rounded-lg accent-indigo-500 cursor-pointer"
+                          />
+                          <span className="font-bold text-sm text-navy-deep">Prodotto Aperto</span>
+                        </label>
+                        
+                        {scannedInfo.opened && (
+                          <div className="pt-3 border-t border-slate-200/50 flex flex-col gap-2.5 animate-fadeIn">
+                            <span className="text-[9px] text-slate-400 uppercase font-black tracking-wider px-2">Scade dopo l'apertura in:</span>
+                            <div className="flex items-center gap-1.5">
+                              {[1, 2, 3, 4, 5, 6].map(days => (
+                                <button
+                                  type="button"
+                                  key={days}
+                                  onClick={() => setScannedInfo({ ...scannedInfo, daysAfterOpen: days })}
+                                  className={cn(
+                                    "flex-1 py-2 rounded-xl text-xs font-black transition-all border",
+                                    scannedInfo.daysAfterOpen === days ? "bg-amber-500 text-white shadow-md border-amber-500 scale-105" : "neumorphic-raised text-slate-400 border-transparent hover:text-navy-deep"
+                                  )}
+                                >
+                                  {days}g
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
