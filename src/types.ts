@@ -11,6 +11,7 @@ export interface Product {
   opened?: boolean;
   openedDate?: string;
   daysAfterOpen?: number | null;
+  skipRecipeReminder?: boolean;
 }
 
 export interface ShoppingItem {

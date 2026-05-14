@@ -371,7 +371,7 @@ export default function App() {
     if (products.length > 0 && !sessionReminderDone) {
       const today = new Date();
       const soon = products.filter(p => {
-        if (p.consumed) return false;
+        if (p.consumed || p.skipRecipeReminder) return false;
         const expiry = parseISO(p.expiryDate);
         if (!isValid(expiry)) return false;
         const diff = differenceInDays(expiry, today);
@@ -818,52 +818,54 @@ export default function App() {
       </div>
 
       {/* Header Navigation */}
-      <nav className="h-28 px-8 flex items-center justify-between sticky top-0 z-40 bg-ice-grey/80 backdrop-blur-xl border-b border-white/20 shadow-sm">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 neumorphic-raised rounded-2xl flex items-center justify-center pb-[2px]">
-            <Refrigerator className="w-6 h-6 text-indigo-500" />
-          </div>
-          <div>
-            <h1 className="text-lg font-display font-black tracking-widest text-navy-deep leading-none uppercase">
-              FRIGOSMART
-            </h1>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.1em] mt-1.5 md:mt-2">Personal Assistant AI</p>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-6">
-          {user && (
-            <div className="hidden sm:flex flex-col items-end mr-2">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 text-right w-full">Account</span>
-              <span className="text-sm font-bold text-navy-deep leading-none truncate max-w-[120px]">{user.displayName || user.email}</span>
+      {!showReminder && (
+        <nav className="h-28 px-8 flex items-center justify-between sticky top-0 z-40 bg-ice-grey/80 backdrop-blur-xl border-b border-white/20 shadow-sm">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 neumorphic-raised rounded-2xl flex items-center justify-center pb-[2px]">
+              <Refrigerator className="w-6 h-6 text-indigo-500" />
             </div>
-          )}
-
-          <div className="hidden sm:flex flex-col items-end">
-            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 text-right w-full">Temperatura</span>
-            <span className="text-lg font-bold text-navy-deep leading-none">3.2°C</span>
+            <div>
+              <h1 className="text-lg font-display font-black tracking-widest text-navy-deep leading-none uppercase">
+                FRIGOSMART
+              </h1>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.1em] mt-1.5 md:mt-2">Personal Assistant AI</p>
+            </div>
           </div>
           
-          {user && (
-            <button 
-              onClick={handleLogout}
-              className="w-10 h-10 neumorphic-raised rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 hover:scale-110 active:scale-95 transition-transform"
-              title="Logout"
-            >
-              <LogOut size={20} />
-            </button>
-          )}
+          <div className="flex items-center gap-6">
+            {user && (
+              <div className="hidden sm:flex flex-col items-end mr-2">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 text-right w-full">Account</span>
+                <span className="text-sm font-bold text-navy-deep leading-none truncate max-w-[120px]">{user.displayName || user.email}</span>
+              </div>
+            )}
 
-          {view !== 'list' && (
-             <button 
-              onClick={() => { setView('list'); }}
-              className="w-10 h-10 neumorphic-raised rounded-full flex items-center justify-center text-navy-deep hover:scale-110 active:scale-95 transition-transform"
-            >
-              <X size={20} />
-            </button>
-          )}
-        </div>
-      </nav>
+            <div className="hidden sm:flex flex-col items-end">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 text-right w-full">Temperatura</span>
+              <span className="text-lg font-bold text-navy-deep leading-none">3.2°C</span>
+            </div>
+            
+            {user && (
+              <button 
+                onClick={handleLogout}
+                className="w-10 h-10 neumorphic-raised rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 hover:scale-110 active:scale-95 transition-transform"
+                title="Logout"
+              >
+                <LogOut size={20} />
+              </button>
+            )}
+
+            {view !== 'list' && (
+               <button 
+                onClick={() => { setView('list'); }}
+                className="w-10 h-10 neumorphic-raised rounded-full flex items-center justify-center text-navy-deep hover:scale-110 active:scale-95 transition-transform"
+              >
+                <X size={20} />
+              </button>
+            )}
+          </div>
+        </nav>
+      )}
 
       <main className="max-w-5xl mx-auto p-4 md:p-8 relative z-10 pt-12 md:pt-20">
         <AnimatePresence mode="wait">
@@ -1708,7 +1710,7 @@ export default function App() {
 
       {/* Floating Bottom Navigation Navbar */}
       <AnimatePresence>
-        {(view === 'list' || view === 'settings' || view === 'shopping') && (
+        {!showReminder && (view === 'list' || view === 'settings' || view === 'shopping') && (
           <motion.div 
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -2545,6 +2547,21 @@ function ExpiringReminderModal({
   const next = () => setCurrentIndex((prev) => (prev + 1) % products.length);
   const prev = () => setCurrentIndex((prev) => (prev - 1 + products.length) % products.length);
 
+  const handleToggleSkipReminder = async () => {
+    const u = auth.currentUser;
+    if (!u || !currentProduct) return;
+    const newStatus = !currentProduct.skipRecipeReminder;
+    try {
+      await updateDoc(doc(db, 'users', u.uid, 'products', currentProduct.id), {
+        skipRecipeReminder: newStatus
+      });
+      currentProduct.skipRecipeReminder = newStatus;
+      setCurrentIndex(prevIdx => prevIdx);
+    } catch (e) {
+      console.error("Failed to update skip reminder preference", e);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-[60] overflow-y-auto">
       <div className="flex min-h-full items-center justify-center p-3 sm:p-6 text-center">
@@ -2553,7 +2570,7 @@ function ExpiringReminderModal({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="fixed inset-0 bg-black/80 backdrop-blur-md z-0"
+          className="fixed inset-0 bg-navy-deep/30 backdrop-blur-md z-0"
         />
         <motion.div 
           initial={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -2650,7 +2667,7 @@ function ExpiringReminderModal({
                       <motion.div 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        className="space-y-5 sm:space-y-6"
+                        className="space-y-5 sm:space-y-6 max-h-[200px] sm:max-h-[280px] overflow-y-auto touch-pan-y overscroll-contain pr-1 sm:pr-2"
                       >
                         <div className="bg-white/50 rounded-[1.5rem] sm:rounded-[2rem] p-4 sm:p-6 border border-white/40">
                           <div className="flex gap-3 sm:gap-4">
@@ -2718,7 +2735,21 @@ function ExpiringReminderModal({
             </div>
           </div>
 
-          <div className="p-5 sm:p-10 pt-2 sm:pt-4">
+          <div className="p-5 sm:p-10 pt-2 sm:pt-4 space-y-4">
+            {mode === 'individual' && currentProduct && (
+              <label className="flex items-center gap-3 px-2 cursor-pointer group select-none">
+                <input 
+                  type="checkbox"
+                  checked={!!currentProduct.skipRecipeReminder}
+                  onChange={handleToggleSkipReminder}
+                  className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 neumorphic-inset cursor-pointer"
+                />
+                <span className="text-[10px] sm:text-xs font-bold text-slate-500 group-hover:text-navy-deep transition-colors leading-tight">
+                  Non ripetere promemoria per questo prodotto
+                </span>
+              </label>
+            )}
+
             <button 
               onClick={onClose}
               className="w-full py-4 sm:py-6 neumorphic-raised bg-white text-navy-deep rounded-2xl sm:rounded-3xl font-black text-xs uppercase tracking-widest transition-all active:neumorphic-inset"
