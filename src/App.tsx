@@ -2546,184 +2546,188 @@ function ExpiringReminderModal({
   const prev = () => setCurrentIndex((prev) => (prev - 1 + products.length) % products.length);
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={onClose}
-        className="absolute inset-0 bg-black/80 backdrop-blur-md"
-      />
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.9, y: 20 }}
-        className="relative w-full max-w-lg neumorphic-raised rounded-[3rem] overflow-hidden"
-      >
-        <button 
+    <div className="fixed inset-0 z-[60] overflow-y-auto">
+      <div className="flex min-h-full items-center justify-center p-3 sm:p-6 text-center">
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
           onClick={onClose}
-          className="absolute top-8 right-8 z-10 w-10 h-10 neumorphic-raised rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 transition-colors"
+          className="fixed inset-0 bg-black/80 backdrop-blur-md z-0"
+        />
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.9, y: 20 }}
+          className="relative w-full max-w-lg neumorphic-raised rounded-[2rem] sm:rounded-[3rem] overflow-hidden my-8 z-10 text-left bg-[#E0E5EC]"
         >
-          <X size={18} />
-        </button>
-
-        <div className="p-10 pb-6">
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 neumorphic-inset rounded-2xl flex items-center justify-center text-indigo-500">
-                <Refrigerator size={24} />
-              </div>
-              <div>
-                <h3 className="text-xl font-display font-bold text-navy-deep leading-none">Chef AI</h3>
-                <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.2em] mt-1.5">Anti-Spreco</p>
-              </div>
-            </div>
-
-            <div className="flex neumorphic-inset p-1.5 rounded-2xl">
-              <button 
-                onClick={() => setMode('individual')}
-                className={cn(
-                  "px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all",
-                  mode === 'individual' ? "neumorphic-raised text-indigo-600" : "text-slate-400 hover:text-slate-600"
-                )}
-              >
-                Singolo
-              </button>
-              <button 
-                onClick={() => setMode('combined')}
-                className={cn(
-                  "px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all",
-                  mode === 'combined' ? "neumorphic-raised text-indigo-600" : "text-slate-400 hover:text-slate-600"
-                )}
-              >
-                Combo
-              </button>
-            </div>
-          </div>
-
-          <div className="relative">
-            <AnimatePresence mode="wait">
-              <motion.div 
-                key={mode === 'individual' ? currentProduct.id : 'combined'}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="neumorphic-inset rounded-[2.5rem] p-8"
-              >
-                {mode === 'individual' ? (
-                  <div className="flex items-start justify-between gap-4 mb-6">
-                    <div className="flex-1">
-                      <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest mb-1.5 block">Da consumare</span>
-                      <h4 className="text-2xl font-display font-bold text-navy-deep truncate">{currentProduct.name}</h4>
-                      <p className="text-slate-400 text-xs mt-1.5 font-medium">
-                        Scade il {format(parseISO(currentProduct.expiryDate), 'd MMMM', { locale: it })}
-                      </p>
-                    </div>
-                    <div className="w-14 h-14 neumorphic-raised rounded-2xl flex items-center justify-center text-slate-400">
-                      {getCategoryIcon(currentProduct.category)}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="mb-6">
-                    <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest mb-3 block">Ingredienti Combinati</span>
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {products.map(p => (
-                        <span key={p.id} className="px-3 py-2 neumorphic-raised rounded-xl text-[10px] font-bold text-navy-deep">
-                          + {p.name}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="mt-8 min-h-[140px]">
-                  {loadingRecipe ? (
-                    <div className="flex flex-col items-center justify-center h-full gap-5 py-10">
-                      <RefreshCw className="animate-spin text-indigo-400" size={32} />
-                      <p className="text-[9px] text-slate-400 uppercase font-black tracking-widest">Creazione ricetta gourmet...</p>
-                    </div>
-                  ) : recipeInfo ? (
-                    <motion.div 
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="space-y-6"
-                    >
-                      <div className="bg-white/50 rounded-[2rem] p-6 border border-white/40">
-                        <div className="flex gap-4">
-                          <CookingPot size={22} className="text-indigo-500 shrink-0 mt-1" />
-                          <div className="space-y-5">
-                            <p className="text-sm text-navy-deep leading-relaxed font-semibold">
-                              {recipeInfo.recipe}
-                            </p>
-                            
-                            {recipeInfo.pairingIngredients && recipeInfo.pairingIngredients.length > 0 && (
-                              <div>
-                                <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest block mb-3">Abbinamenti consigliati</span>
-                                <div className="flex flex-wrap gap-2">
-                                  {recipeInfo.pairingIngredients.map((ing, i) => (
-                                    <span key={i} className="px-3 py-2 neumorphic-raised rounded-xl text-[10px] font-bold text-indigo-600">
-                                      {ing}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ) : (
-                    <button 
-                      onClick={handleGetRecipe}
-                      className="w-full py-6 neumorphic-raised text-indigo-600 rounded-3xl font-black text-xs uppercase tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3"
-                    >
-                      <CookingPot size={20} />
-                      Genera Ricetta
-                    </button>
-                  )}
-                </div>
-              </motion.div>
-            </AnimatePresence>
-
-            {mode === 'individual' && products.length > 1 && (
-              <div className="flex justify-between items-center mt-8 px-4">
-                <div className="flex gap-2.5">
-                  {products.map((_, idx) => (
-                    <div 
-                      key={idx}
-                      className={`h-1.5 rounded-full transition-all duration-300 ${idx === currentIndex ? 'w-8 bg-indigo-500 shadow-lg shadow-indigo-500/20' : 'w-1.5 bg-slate-200'}`}
-                    />
-                  ))}
-                </div>
-                <div className="flex gap-4">
-                  <button 
-                    onClick={prev}
-                    className="w-12 h-12 neumorphic-raised rounded-2xl flex items-center justify-center text-slate-400 hover:text-navy-deep transition-all"
-                  >
-                    <ChevronLeft size={20} />
-                  </button>
-                  <button 
-                    onClick={next}
-                    className="w-12 h-12 neumorphic-raised rounded-2xl flex items-center justify-center text-slate-400 hover:text-navy-deep transition-all"
-                  >
-                    <ChevronRight size={20} />
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="p-10 pt-4">
           <button 
             onClick={onClose}
-            className="w-full py-6 neumorphic-raised bg-white text-navy-deep rounded-3xl font-black text-xs uppercase tracking-widest transition-all active:neumorphic-inset"
+            className="absolute top-4 right-4 sm:top-8 sm:right-8 z-20 w-10 h-10 neumorphic-raised rounded-full flex items-center justify-center text-slate-400 hover:text-rose-500 transition-colors"
+            title="Chiudi"
           >
-            Ricevuto
+            <X size={18} />
           </button>
-        </div>
-      </motion.div>
+
+          <div className="p-5 sm:p-10 pb-6">
+            <div className="flex items-center justify-between mb-6 sm:mb-8 pr-12 sm:pr-0">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 neumorphic-inset rounded-xl sm:rounded-2xl flex items-center justify-center text-indigo-500 shrink-0">
+                  <Refrigerator size={20} className="sm:w-6 sm:h-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg sm:text-xl font-display font-bold text-navy-deep leading-none">Chef AI</h3>
+                  <p className="text-[9px] text-slate-400 font-black uppercase tracking-[0.2em] mt-1 sm:mt-1.5">Anti-Spreco</p>
+                </div>
+              </div>
+
+              <div className="flex neumorphic-inset p-1 sm:p-1.5 rounded-xl sm:rounded-2xl shrink-0">
+                <button 
+                  onClick={() => setMode('individual')}
+                  className={cn(
+                    "px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[9px] font-black uppercase tracking-widest transition-all",
+                    mode === 'individual' ? "neumorphic-raised text-indigo-600" : "text-slate-400 hover:text-slate-600"
+                  )}
+                >
+                  Singolo
+                </button>
+                <button 
+                  onClick={() => setMode('combined')}
+                  className={cn(
+                    "px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[9px] font-black uppercase tracking-widest transition-all",
+                    mode === 'combined' ? "neumorphic-raised text-indigo-600" : "text-slate-400 hover:text-slate-600"
+                  )}
+                >
+                  Combo
+                </button>
+              </div>
+            </div>
+
+            <div className="relative">
+              <AnimatePresence mode="wait">
+                <motion.div 
+                  key={mode === 'individual' ? currentProduct.id : 'combined'}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="neumorphic-inset rounded-[1.5rem] sm:rounded-[2.5rem] p-4 sm:p-8"
+                >
+                  {mode === 'individual' ? (
+                    <div className="flex items-start justify-between gap-3 sm:gap-4 mb-5 sm:mb-6">
+                      <div className="min-w-0 flex-1">
+                        <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest mb-1 sm:mb-1.5 block">Da consumare</span>
+                        <h4 className="text-lg sm:text-2xl font-display font-bold text-navy-deep break-words whitespace-normal leading-tight">
+                          {currentProduct.name}
+                        </h4>
+                        <p className="text-slate-400 text-xs mt-1 sm:mt-1.5 font-medium">
+                          Scade il {format(parseISO(currentProduct.expiryDate), 'd MMMM', { locale: it })}
+                        </p>
+                      </div>
+                      <div className="w-10 h-10 sm:w-14 sm:h-14 neumorphic-raised rounded-xl sm:rounded-2xl flex items-center justify-center text-slate-400 shrink-0">
+                        {getCategoryIcon(currentProduct.category)}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mb-5 sm:mb-6">
+                      <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest mb-2 sm:mb-3 block">Ingredienti Combinati</span>
+                      <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-3 sm:mb-4">
+                        {products.map(p => (
+                          <span key={p.id} className="px-2.5 sm:px-3 py-1.5 sm:py-2 neumorphic-raised rounded-lg sm:rounded-xl text-[9px] sm:text-[10px] font-bold text-navy-deep break-words whitespace-normal max-w-full">
+                            + {p.name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mt-6 sm:mt-8 min-h-[140px]">
+                    {loadingRecipe ? (
+                      <div className="flex flex-col items-center justify-center h-full gap-4 sm:gap-5 py-8 sm:py-10">
+                        <RefreshCw className="animate-spin text-indigo-400" size={28} />
+                        <p className="text-[9px] text-slate-400 uppercase font-black tracking-widest text-center">Creazione ricetta gourmet...</p>
+                      </div>
+                    ) : recipeInfo ? (
+                      <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="space-y-5 sm:space-y-6"
+                      >
+                        <div className="bg-white/50 rounded-[1.5rem] sm:rounded-[2rem] p-4 sm:p-6 border border-white/40">
+                          <div className="flex gap-3 sm:gap-4">
+                            <CookingPot size={20} className="text-indigo-500 shrink-0 mt-0.5 sm:mt-1" />
+                            <div className="space-y-4 sm:space-y-5 min-w-0 flex-1">
+                              <p className="text-xs sm:text-sm text-navy-deep leading-relaxed font-semibold break-words whitespace-normal">
+                                {recipeInfo.recipe}
+                              </p>
+                              
+                              {recipeInfo.pairingIngredients && recipeInfo.pairingIngredients.length > 0 && (
+                                <div>
+                                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2 sm:mb-3">Abbinamenti consigliati</span>
+                                  <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                                    {recipeInfo.pairingIngredients.map((ing, i) => (
+                                      <span key={i} className="px-2.5 sm:px-3 py-1.5 sm:py-2 neumorphic-raised rounded-lg sm:rounded-xl text-[9px] sm:text-[10px] font-bold text-indigo-600 break-words whitespace-normal">
+                                        {ing}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ) : (
+                      <button 
+                        onClick={handleGetRecipe}
+                        className="w-full py-4 sm:py-6 neumorphic-raised text-indigo-600 rounded-2xl sm:rounded-3xl font-black text-xs uppercase tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 sm:gap-3"
+                      >
+                        <CookingPot size={18} />
+                        Genera Ricetta
+                      </button>
+                    )}
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+
+              {mode === 'individual' && products.length > 1 && (
+                <div className="flex justify-between items-center mt-6 sm:mt-8 px-2 sm:px-4">
+                  <div className="flex gap-1.5 sm:gap-2.5 flex-wrap max-w-[50%]">
+                    {products.map((_, idx) => (
+                      <div 
+                        key={idx}
+                        className={`h-1.5 rounded-full transition-all duration-300 ${idx === currentIndex ? 'w-6 sm:w-8 bg-indigo-500 shadow-lg shadow-indigo-500/20' : 'w-1.5 bg-slate-200'}`}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex gap-2 sm:gap-4 shrink-0">
+                    <button 
+                      onClick={prev}
+                      className="w-10 h-10 sm:w-12 sm:h-12 neumorphic-raised rounded-xl sm:rounded-2xl flex items-center justify-center text-slate-400 hover:text-navy-deep transition-all active:scale-95"
+                    >
+                      <ChevronLeft size={18} />
+                    </button>
+                    <button 
+                      onClick={next}
+                      className="w-10 h-10 sm:w-12 sm:h-12 neumorphic-raised rounded-xl sm:rounded-2xl flex items-center justify-center text-slate-400 hover:text-navy-deep transition-all active:scale-95"
+                    >
+                      <ChevronRight size={18} />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="p-5 sm:p-10 pt-2 sm:pt-4">
+            <button 
+              onClick={onClose}
+              className="w-full py-4 sm:py-6 neumorphic-raised bg-white text-navy-deep rounded-2xl sm:rounded-3xl font-black text-xs uppercase tracking-widest transition-all active:neumorphic-inset"
+            >
+              Ricevuto
+            </button>
+          </div>
+        </motion.div>
+      </div>
     </div>
   );
 }
-
