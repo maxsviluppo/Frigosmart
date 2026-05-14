@@ -2742,7 +2742,7 @@ function ExpiringReminderModal({
                   type="checkbox"
                   checked={!!currentProduct.skipRecipeReminder}
                   onChange={handleToggleSkipReminder}
-                  className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 neumorphic-inset cursor-pointer"
+                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 accent-blue-600 border-slate-300 neumorphic-inset cursor-pointer"
                 />
                 <span className="text-[10px] sm:text-xs font-bold text-slate-500 group-hover:text-navy-deep transition-colors leading-tight">
                   Non ripetere promemoria per questo prodotto
