@@ -34,7 +34,7 @@ export const analyzeProductImage = async (base64Image: string, focusDate: boolea
       : "PRODOTTO: Identifica nome, categoria e data di scadenza (DD-MM-YYYY). Sii preciso e veloce.";
 
     const fetchPromise = ai.models.generateContent({
-      model: "gemini-flash-latest",
+      model: "gemini-2.5-flash-lite",
       contents: [
         {
           parts: [
@@ -95,7 +95,7 @@ export const generateRecipeSuggestion = async (
       : "Non specificati";
 
     const response = await ai.models.generateContent({
-      model: "gemini-flash-latest",
+      model: "gemini-2.5-flash-lite",
       contents: [
         {
           text: `Sei uno chef anti-spreco stellato. 
@@ -156,7 +156,7 @@ export const parseVoiceDate = async (text: string, referenceDate: string): Promi
   try {
     const ai = getAIInstance();
     const response = await ai.models.generateContent({
-      model: "gemini-flash-latest",
+      model: "gemini-2.5-flash-lite",
       contents: [
         {
           text: `Sei un esperto di analisi di date. 
@@ -206,7 +206,7 @@ export const generateShoppingItemsFromContent = async (
     const recipeList = suggestedRecipeIngredients.join(", ");
 
     const response = await ai.models.generateContent({
-      model: "gemini-flash-latest",
+      model: "gemini-2.5-flash-lite",
       contents: [
         {
           text: `Sei un assistente intelligente per la gestione della casa. 
